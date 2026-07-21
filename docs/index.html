@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A graph is a map of loops + checkpoints — /graph for Claude Code &amp; Codex</title>
+<meta name="description" content="Past the loop, the next thing you design is the map it runs inside. The /graph skill drafts agent graphs for Claude Code and OpenAI Codex — nodes, checkpoints, and routes for the jobs you run every week.">
+<meta name="author" content="Nick Spisak">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="keywords" content="agent graph, state machine, Claude Code, OpenAI Codex, agent loops, checkpoints, agent pipeline, workflow, n8n, LangGraph, agentic coding, /graph skill">
+<link rel="canonical" href="https://nicholasspisak.github.io/graph/">
+<meta name="theme-color" content="#2244B2">
+
+<!-- Open Graph -->
+<meta property="og:site_name" content="Graph">
+<meta property="og:title" content="A graph is a map of loops + checkpoints">
+<meta property="og:description" content="The /graph skill drafts agent graphs for Claude Code and OpenAI Codex — nodes, checkpoints, and routes for the jobs you run every week.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nicholasspisak.github.io/graph/">
+<meta property="og:image" content="https://nicholasspisak.github.io/graph/og-graph.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A graph is a map of loops + checkpoints">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="A graph is a map of loops + checkpoints">
+<meta name="twitter:description" content="The /graph skill drafts agent graphs for Claude Code and OpenAI Codex — nodes, checkpoints, and routes for the jobs you run every week.">
+<meta name="twitter:image" content="https://nicholasspisak.github.io/graph/og-graph.png">
+<meta name="twitter:image:alt" content="A graph is a map of loops + checkpoints">
+<meta name="twitter:creator" content="@NickSpisak_">
+
+<!-- Structured data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Graph",
+  "alternateName": "/graph",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS, Linux, Windows",
+  "description": "A portable skill for Claude Code and OpenAI Codex that drafts agent graphs — the map of nodes, checkpoints, and routes (a state machine) a repeatable job travels — as a committed graph doc plus one brief per node, mechanically validated.",
+  "url": "https://nicholasspisak.github.io/graph/",
+  "image": "https://nicholasspisak.github.io/graph/og-graph.png",
+  "author": { "@type": "Person", "name": "Nick Spisak" },
+  "license": "https://opensource.org/license/mit",
+  "keywords": "Claude Code, OpenAI Codex, agent graph, state machine, checkpoints, agent pipeline, agentic coding",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..600&family=Public+Sans:ital,wght@0,400..800;1,400..600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F1E7; --paper-2:#EFE8D9; --card:#FBF8F1;
+    --ink:#1C1813; --ink-soft:#4A423A; --ink-faint:#6E6459;
+    --rule:#D8CEBB; --rule-strong:#C3B7A0;
+    --signal:#2244B2; --signal-ink:#1A3489; --signal-wash:#DFE6F6;
+    --slate:#2C4A57; --slate-soft:#42636F;
+    --amber:#BF3B22;
+    --focus:#B23A1E;
+    --shadow:22px 22px 0 -8px rgba(28,24,19,.06);
+    --maxw:1080px;
+    --font-display:"Fraunces",Georgia,serif;
+    --font-body:"Public Sans",-apple-system,BlinkMacSystemFont,sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  }
+  :root[data-theme="dark"]{
+    --paper:#12130D; --paper-2:#191B13; --card:#1D2016;
+    --ink:#EAE7D8; --ink-soft:#C0BBA9; --ink-faint:#938C7B;
+    --rule:#31332A; --rule-strong:#424537;
+    --signal:#7C9CFF; --signal-ink:#9BB4FF; --signal-wash:#1A2138;
+    --slate:#7FB0C2; --slate-soft:#6C97A6;
+    --amber:#E8734A;
+    --focus:#FFB38C;
+    --shadow:22px 22px 0 -8px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#12130D; --paper-2:#191B13; --card:#1D2016;
+      --ink:#EAE7D8; --ink-soft:#C0BBA9; --ink-faint:#938C7B;
+      --rule:#31332A; --rule-strong:#424537;
+      --signal:#7C9CFF; --signal-ink:#9BB4FF; --signal-wash:#1A2138;
+      --slate:#7FB0C2; --slate-soft:#6C97A6;
+      --amber:#E8734A;
+      --focus:#FFB38C;
+      --shadow:22px 22px 0 -8px rgba(0,0,0,.35);
+    }
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--font-body); font-size:clamp(16px,1.05vw + 12px,18px);
+    line-height:1.62; font-weight:400;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+    opacity:.035; mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  :root[data-theme="dark"] body::before{mix-blend-mode:screen; opacity:.05}
+
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 clamp(20px,5vw,52px); position:relative; z-index:1}
+
+  a{color:var(--signal-ink); text-decoration-thickness:1.5px; text-underline-offset:3px}
+  a:hover{color:var(--ink)}
+  :focus-visible{outline:3px solid var(--focus); outline-offset:3px; border-radius:2px}
+
+  .skip{position:absolute; left:-999px; top:0; background:var(--ink); color:var(--paper);
+    padding:12px 18px; z-index:99; font-weight:700}
+  .skip:focus{left:12px; top:12px}
+
+  code.m, .m{font-family:var(--font-mono); font-size:.86em; background:var(--paper-2); padding:1px 6px; border-radius:3px; color:var(--ink)}
+
+  /* ---- masthead ---- */
+  .masthead{border-bottom:2px solid var(--ink); position:sticky; top:0; z-index:20;
+    background:color-mix(in srgb,var(--paper) 88%,transparent); backdrop-filter:blur(8px)}
+  .masthead .wrap{display:flex; align-items:center; justify-content:space-between; gap:16px; padding-top:14px; padding-bottom:14px}
+  .brand{display:flex; align-items:center; gap:12px; font-family:var(--font-mono); font-weight:600; font-size:.82rem; letter-spacing:.02em; text-transform:uppercase; color:var(--ink)}
+  .brand .dot{width:12px; height:12px; background:var(--signal); border-radius:2px; transform:rotate(45deg); box-shadow:0 0 0 3px var(--signal-wash); flex:none}
+  .mnav{display:flex; align-items:center; gap:22px}
+  .mnav a{font-family:var(--font-mono); font-size:.78rem; color:var(--ink-soft); text-decoration:none; letter-spacing:.01em}
+  .mnav a:hover{color:var(--signal-ink)}
+  .theme-btn{font-family:var(--font-mono); font-size:.72rem; text-transform:uppercase; letter-spacing:.08em;
+    background:transparent; border:1.5px solid var(--rule-strong); color:var(--ink-soft);
+    padding:7px 12px; border-radius:999px; cursor:pointer; display:inline-flex; align-items:center; gap:7px}
+  .theme-btn:hover{border-color:var(--ink); color:var(--ink)}
+  @media(max-width:720px){.mnav a.navlink{display:none}}
+
+  /* ---- hero ---- */
+  .hero{padding:clamp(48px,9vw,104px) 0 clamp(36px,6vw,68px); border-bottom:1px solid var(--rule)}
+  .kicker{font-family:var(--font-mono); font-size:.8rem; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--signal-ink); display:flex; align-items:center; gap:12px; margin-bottom:26px}
+  .kicker::before{content:""; width:38px; height:2px; background:var(--signal); display:inline-block}
+  h1{font-family:var(--font-display); font-weight:600; font-optical-sizing:auto;
+    font-size:clamp(2.5rem,6.6vw,4.9rem); line-height:1.02; letter-spacing:-.02em; margin:0 0 .35em;
+    max-width:15ch}
+  h1 em{font-style:italic; color:var(--signal); font-weight:500}
+  .lede{font-size:clamp(1.12rem,1.6vw,1.4rem); color:var(--ink-soft); max-width:46ch; margin:0 0 2.2em; line-height:1.5}
+  .lede strong{color:var(--ink); font-weight:700}
+  .cta-row{display:flex; flex-wrap:wrap; gap:14px; align-items:center}
+  .btn{font-family:var(--font-mono); font-weight:600; font-size:.9rem; text-decoration:none;
+    padding:14px 22px; border-radius:4px; display:inline-flex; align-items:center; gap:10px;
+    border:2px solid var(--ink); transition:transform .12s ease, box-shadow .12s ease}
+  .btn.primary{background:var(--signal); border-color:var(--signal); color:#fff}
+  .btn.primary:hover{color:#fff; transform:translate(-2px,-2px); box-shadow:5px 5px 0 var(--ink)}
+  :root[data-theme="dark"] .btn.primary{color:#0E1020}
+  :root[data-theme="dark"] .btn.primary:hover{color:#0E1020; box-shadow:5px 5px 0 rgba(255,255,255,.25)}
+  .btn.ghost{background:transparent; color:var(--ink)}
+  .btn.ghost:hover{color:var(--ink); transform:translate(-2px,-2px); box-shadow:5px 5px 0 var(--rule-strong)}
+  @media(prefers-reduced-motion:reduce){.btn:hover{transform:none}}
+  .hero-cols{display:grid; grid-template-columns:1.05fr .95fr; gap:clamp(28px,5vw,64px); align-items:center}
+  @media(max-width:820px){.hero-cols{grid-template-columns:1fr}}
+
+  /* hero map emblem (SVG) */
+  .emblem{background:var(--card); border:2px solid var(--ink); border-radius:8px; padding:18px; box-shadow:var(--shadow)}
+  .emblem svg{display:block; width:100%; height:auto}
+  .emblem .cap-line{font-family:var(--font-mono); font-size:.7rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-faint); display:flex; justify-content:space-between; margin-bottom:12px}
+  .emblem .cap-line b{color:var(--signal-ink); font-weight:600}
+
+  /* ---- section scaffolding ---- */
+  section{padding:clamp(52px,8vw,92px) 0; border-bottom:1px solid var(--rule); scroll-margin-top:80px}
+  .sec-head{display:flex; gap:20px; align-items:baseline; margin-bottom:36px}
+  .sec-no{font-family:var(--font-mono); font-size:.85rem; color:var(--signal-ink); font-weight:600; flex:none; padding-top:.4em}
+  h2{font-family:var(--font-display); font-weight:600; font-size:clamp(1.9rem,3.8vw,3rem);
+    line-height:1.02; letter-spacing:-.015em; margin:0; max-width:22ch}
+  .sec-intro{max-width:62ch; color:var(--ink-soft); font-size:1.08rem; margin:0 0 8px}
+  .sec-intro strong{color:var(--ink)}
+  .sec-intro em{color:var(--ink)}
+
+  .callout{background:var(--card); border:2px solid var(--ink); border-left-width:8px; border-left-color:var(--signal);
+    border-radius:6px; padding:24px 26px; margin-top:26px; max-width:64ch; box-shadow:var(--shadow)}
+  .callout p{margin:0}
+  .callout .big{font-family:var(--font-display); font-size:1.3rem; line-height:1.35; color:var(--ink); margin-bottom:6px}
+
+  /* loop vs graph cards */
+  .versus{display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:12px}
+  @media(max-width:720px){.versus{grid-template-columns:1fr}}
+  .vcard{background:var(--card); border:2px solid var(--rule-strong); border-radius:6px; padding:24px; position:relative}
+  .vcard.is-graph{border-color:var(--ink); box-shadow:var(--shadow)}
+  .vcard .tag{font-family:var(--font-mono); font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint)}
+  .vcard h3{font-family:var(--font-display); font-size:1.5rem; margin:.2em 0 .1em; font-weight:600}
+  .vcard .sub{font-family:var(--font-mono); font-size:.82rem; color:var(--signal-ink); margin-bottom:14px; font-weight:500}
+  .vcard ul{margin:0; padding:0; list-style:none}
+  .vcard li{padding:8px 0 8px 22px; position:relative; border-top:1px solid var(--rule); font-size:.97rem; color:var(--ink-soft)}
+  .vcard li:first-child{border-top:none}
+  .vcard li::before{content:"→"; position:absolute; left:0; color:var(--signal); font-family:var(--font-mono)}
+  .vcard li strong{color:var(--ink)}
+
+  /* artifact cards */
+  .files{display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:12px}
+  @media(max-width:720px){.files{grid-template-columns:1fr}}
+
+  /* rules grid */
+  .rules{display:grid; grid-template-columns:repeat(2,1fr); gap:18px; margin-top:10px; counter-reset:rule}
+  @media(max-width:720px){.rules{grid-template-columns:1fr}}
+  .rulecard{background:var(--card); border:2px solid var(--rule-strong); border-radius:6px; padding:20px 22px; counter-increment:rule; position:relative}
+  .rulecard h3{font-family:var(--font-display); font-size:1.15rem; font-weight:600; margin:0 0 .35em; padding-left:2.4em}
+  .rulecard h3::before{content:"R" counter(rule); position:absolute; left:20px; top:20px;
+    font-family:var(--font-mono); font-size:.72rem; font-weight:600; color:var(--signal-ink);
+    background:var(--signal-wash); border:1px solid var(--signal); border-radius:4px; padding:2px 6px}
+  .rulecard p{margin:0; color:var(--ink-soft); font-size:.93rem}
+  .note{font-size:.95rem; color:var(--ink-faint); max-width:66ch; margin-top:24px; font-style:italic}
+  .note a{color:var(--signal-ink)}
+
+  /* steps */
+  .steps{counter-reset:step -1; margin-top:6px; border-top:2px solid var(--ink)}
+  .step{counter-increment:step; display:grid; grid-template-columns:auto 1fr; gap:clamp(18px,4vw,42px);
+    padding:26px 0; border-bottom:1px solid var(--rule); align-items:start}
+  .step .num{font-family:var(--font-display); font-weight:600; font-size:clamp(2rem,4vw,3rem); line-height:1;
+    color:var(--signal); min-width:2.2ch}
+  .step .num::before{content:"0" counter(step)}
+  .step h3{font-family:var(--font-display); font-size:1.35rem; font-weight:600; margin:.1em 0 .3em}
+  .step p{margin:0; color:var(--ink-soft); max-width:60ch}
+
+  /* harness split */
+  .harness{display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:10px}
+  @media(max-width:720px){.harness{grid-template-columns:1fr}}
+  .hcard{border:2px solid var(--ink); border-radius:6px; overflow:hidden; background:var(--card)}
+  .hcard .top{background:var(--ink); color:var(--paper); padding:14px 20px; font-family:var(--font-mono);
+    font-size:.85rem; font-weight:600; display:flex; align-items:center; justify-content:space-between}
+  .hcard .top .fc{font-size:.62rem; background:var(--signal); color:#fff; padding:3px 8px; border-radius:999px; letter-spacing:.06em; text-transform:uppercase}
+  :root[data-theme="dark"] .hcard .top .fc{color:#0E1020}
+  .hcard .body{padding:20px}
+  .hcard p{margin:0 0 14px; color:var(--ink-soft); font-size:.95rem}
+  .hcard p:last-child{margin-bottom:0}
+
+  /* code block */
+  .term{background:#171a10; border-radius:6px; overflow:hidden; margin-top:20px; box-shadow:var(--shadow)}
+  :root[data-theme="dark"] .term{background:#0C0E08; border:1px solid var(--rule)}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .term{background:#0C0E08; border:1px solid var(--rule)}}
+  .term .bar{display:flex; gap:7px; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,.1)}
+  .term .bar i{width:11px; height:11px; border-radius:50%; background:#565b48}
+  .term .bar i:first-child{background:var(--signal)}
+  .term pre{margin:0; padding:20px 22px; overflow-x:auto; font-family:var(--font-mono); font-size:.86rem; line-height:1.7; color:#e9e2d3}
+  .term pre .c{color:#99917f}
+  .term pre .p{color:#8FA8F5}
+  .term pre .k{color:#8FC0D2}
+
+  .install-grid{display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:22px; align-items:start}
+  @media(max-width:720px){.install-grid{grid-template-columns:1fr}}
+
+  /* community CTA band */
+  .community{border-bottom:1px solid var(--rule)}
+  .cta-band{background:var(--ink); border-radius:10px; padding:clamp(30px,5vw,54px);
+    display:grid; grid-template-columns:1.5fr auto; gap:clamp(20px,4vw,44px); align-items:center;
+    box-shadow:var(--shadow); position:relative; overflow:hidden}
+  .cta-band::before{content:""; position:absolute; left:0; top:0; bottom:0; width:6px; background:var(--signal)}
+  @media(max-width:720px){.cta-band{grid-template-columns:1fr; text-align:left}}
+  .cta-band .kicker{color:var(--signal); margin-bottom:16px}
+  .cta-band .kicker::before{background:var(--signal)}
+  .cta-band h2{color:var(--paper); font-size:clamp(1.7rem,3.4vw,2.5rem); max-width:18ch; margin:0 0 .35em}
+  .cta-band p{color:color-mix(in srgb,var(--paper) 70%,var(--ink)); margin:0; max-width:46ch; font-size:1.03rem}
+  .cta-band .go{font-family:var(--font-mono); font-weight:600; font-size:.92rem; text-decoration:none;
+    background:var(--signal); color:#fff; border:2px solid var(--signal); padding:16px 26px; border-radius:4px;
+    display:inline-flex; align-items:center; gap:10px; white-space:nowrap; transition:transform .12s ease, box-shadow .12s ease}
+  :root[data-theme="dark"] .cta-band .go{color:#0E1020}
+  .cta-band .go:hover{transform:translate(-2px,-2px); box-shadow:5px 5px 0 rgba(255,255,255,.22)}
+  @media(prefers-reduced-motion:reduce){.cta-band .go:hover{transform:none}}
+
+  /* footer */
+  footer{padding:clamp(44px,7vw,72px) 0; border-bottom:none}
+  .foot-grid{display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:32px}
+  @media(max-width:720px){.foot-grid{grid-template-columns:1fr}}
+  footer h4{font-family:var(--font-mono); font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); margin:0 0 14px}
+  footer .tglobe{font-family:var(--font-display); font-size:1.6rem; font-weight:600}
+  footer ul{list-style:none; margin:0; padding:0}
+  footer li{margin-bottom:8px}
+  footer a{color:var(--ink-soft); text-decoration:none; font-size:.94rem}
+  footer a:hover{color:var(--signal-ink)}
+  .colophon{margin-top:36px; padding-top:22px; border-top:1px solid var(--rule); font-family:var(--font-mono);
+    font-size:.74rem; color:var(--ink-faint); display:flex; flex-wrap:wrap; gap:6px 20px; justify-content:space-between}
+
+  @media(prefers-reduced-motion:no-preference){
+    .anim{opacity:0; transform:translateY(14px); animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
+    .d1{animation-delay:.05s}.d2{animation-delay:.15s}.d3{animation-delay:.25s}.d4{animation-delay:.35s}.d5{animation-delay:.45s}
+    @keyframes rise{to{opacity:1; transform:none}}
+    .flow-dash{stroke-dasharray:6 5; animation:dashmove 2.4s linear infinite}
+    @keyframes dashmove{to{stroke-dashoffset:-22}}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="brand"><span class="dot" aria-hidden="true"></span> Graph</div>
+    <nav class="mnav" aria-label="Primary">
+      <a class="navlink" href="#idea">The idea</a>
+      <a class="navlink" href="#map">The map</a>
+      <a class="navlink" href="#rules">Rules</a>
+      <a class="navlink" href="#install">Install</a>
+      <a href="https://github.com/NicholasSpisak/graph">GitHub ↗</a>
+      <button class="theme-btn" id="themeBtn" type="button" aria-pressed="false">
+        <span id="themeLabel">Dark</span>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- HERO -->
+  <section class="hero" aria-labelledby="h1">
+    <div class="wrap">
+      <p class="kicker anim d1">A skill for Claude Code &amp; OpenAI Codex</p>
+      <div class="hero-cols">
+        <div>
+          <h1 id="h1" class="anim d2">A graph is a <em>map</em> of loops&nbsp;+&nbsp;checkpoints.</h1>
+          <p class="lede anim d3">A loop and a graph are both ways to run an agent — the difference is <strong>who decides the path</strong>. For the jobs you run every week, you draw the map. The <code class="m">/graph</code> skill drafts it for you: the nodes, the gates, the routes, and a brief for every agent on the map.</p>
+          <div class="cta-row anim d4">
+            <a class="btn primary" href="#install">Install the skill</a>
+            <a class="btn ghost" href="https://github.com/NicholasSpisak/graph">View on GitHub</a>
+          </div>
+        </div>
+        <div class="emblem anim d5" role="img" aria-label="Diagram: an audit node flows to a gate asking whether a page already ranks, branching to draft or edit nodes, converging on assemble, then a rubric gate that either clears to publish or loops back through a fix node.">
+          <div class="cap-line"><span>docs/graphs/seo-article/</span><b>max_steps: 14</b></div>
+          <svg viewBox="0 0 420 320" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <g font-family="IBM Plex Mono,monospace" font-size="11">
+              <!-- edges -->
+              <g stroke="var(--ink-faint)" stroke-width="1.5">
+                <path d="M210 40 v18"/>
+                <path d="M175 88 L110 112"/>
+                <path d="M245 88 L310 112"/>
+                <path d="M110 142 L185 168"/>
+                <path d="M310 142 L235 168"/>
+                <path d="M210 196 v18"/>
+                <path d="M210 258 v20" class="flow-dash" stroke="var(--signal)"/>
+              </g>
+              <!-- loop back: miss -> fix -> assemble -->
+              <path d="M262 238 h68 v-56 h-84" stroke="var(--amber)" stroke-width="1.5" class="flow-dash" fill="none"/>
+              <!-- nodes -->
+              <rect x="150" y="14" width="120" height="26" rx="4" fill="var(--paper-2)" stroke="var(--ink)" stroke-width="1.5"/>
+              <text x="210" y="31" text-anchor="middle" fill="var(--ink)">audit</text>
+              <!-- gate diamond -->
+              <path d="M210 58 L252 88 L210 118 L168 88 Z" fill="var(--signal-wash)" stroke="var(--signal)" stroke-width="1.5"/>
+              <text x="210" y="92" text-anchor="middle" fill="var(--signal-ink)" font-size="10">ranks?</text>
+              <rect x="40" y="112" width="140" height="30" rx="4" fill="var(--paper-2)" stroke="var(--ink)" stroke-width="1.5"/>
+              <text x="110" y="131" text-anchor="middle" fill="var(--ink)">draft-new ↻3</text>
+              <rect x="240" y="112" width="140" height="30" rx="4" fill="var(--paper-2)" stroke="var(--ink)" stroke-width="1.5"/>
+              <text x="310" y="131" text-anchor="middle" fill="var(--ink)">edit-ranking ↻3</text>
+              <rect x="150" y="168" width="120" height="28" rx="4" fill="var(--paper-2)" stroke="var(--ink)" stroke-width="1.5"/>
+              <text x="210" y="186" text-anchor="middle" fill="var(--ink)">assemble</text>
+              <!-- rubric gate -->
+              <path d="M210 214 L258 238 L210 262 L162 238 Z" fill="var(--signal-wash)" stroke="var(--signal)" stroke-width="1.5"/>
+              <text x="210" y="242" text-anchor="middle" fill="var(--signal-ink)" font-size="10">rubric</text>
+              <!-- fix node on loop -->
+              <rect x="296" y="168" width="76" height="26" rx="4" fill="var(--paper-2)" stroke="var(--amber)" stroke-width="1.5"/>
+              <text x="334" y="185" text-anchor="middle" fill="var(--ink)">fix</text>
+              <!-- publish -->
+              <rect x="150" y="282" width="120" height="26" rx="4" fill="var(--signal)" stroke="var(--signal)"/>
+              <text x="210" y="299" text-anchor="middle" fill="var(--paper)" font-weight="600">publish</text>
+              <!-- labels -->
+              <text x="120" y="100" text-anchor="middle" fill="var(--ink-faint)" font-size="9">no page yet</text>
+              <text x="303" y="100" text-anchor="middle" fill="var(--ink-faint)" font-size="9">already ranks</text>
+              <text x="238" y="274" fill="var(--ink-faint)" font-size="9">clears</text>
+              <text x="268" y="230" fill="var(--amber)" font-size="9">miss</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THE IDEA -->
+  <section id="idea" aria-labelledby="idea-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="sec-no" aria-hidden="true">01</span>
+        <h2 id="idea-h">Loop vs graph: who decides the path</h2>
+      </div>
+      <p class="sec-intro">A <strong>loop</strong> still starts with you — you set the goal, the brief, and the bar it has to clear. What the agent owns is the path: it drafts, reads the draft back against the brief, rewrites the weak parts, and keeps circling until it clears. A <strong>graph</strong> is you drawing the steps and the routes between them ahead of time. The agent still decides how to handle each step — it just travels the routes you laid down.</p>
+      <div class="versus">
+        <article class="vcard">
+          <span class="tag">The loop</span>
+          <h3>The agent decides the path</h3>
+          <p class="sub">turn by turn, until it clears the bar</p>
+          <ul>
+            <li>You set the <strong>goal</strong> — the outcome you want</li>
+            <li>You set the <strong>brief</strong> — context and constraints</li>
+            <li>You set the <strong>bar</strong> — what good enough has to clear</li>
+            <li>The one thing you never wrote: the step-by-step it took</li>
+          </ul>
+        </article>
+        <article class="vcard is-graph">
+          <span class="tag">The graph</span>
+          <h3>You draw the paths first</h3>
+          <p class="sub">the agent fills each one in</p>
+          <ul>
+            <li>Every <strong>node</strong> is a state the work can be in</li>
+            <li>Every <strong>checkpoint</strong> reads the result and routes it</li>
+            <li>Forward when it clears, <strong>back</strong> when it misses</li>
+            <li>The agent still solves each node its own way</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout">
+        <p class="big">The shape has a name: a state machine.</p>
+        <p>If you have built a workflow in n8n, you have already drawn one — nodes wired together, branches that fire on a condition, a step that loops until it clears. An agent graph is the same shape; the nodes hold agents doing the work instead of single API calls.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- THE MAP -->
+  <section id="map" aria-labelledby="map-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="sec-no" aria-hidden="true">02</span>
+        <h2 id="map-h">A map of loops and checkpoints</h2>
+      </div>
+      <p class="sec-intro">Some nodes run once. Others are their own loop — a critic scores each draft against a rubric and sends it back until it clears the bar. The checkpoints between them read the result and route the work. You keep laying down nodes and checkpoints until the map reliably gives you the output you want. <strong>Then you reuse it</strong>: feed it the next keyword, the next cohort, and the whole pipeline runs again. The skill drafts the map as two committed artifacts:</p>
+      <div class="files">
+        <article class="vcard is-graph">
+          <span class="tag">Artifact one</span>
+          <h3>graph.md</h3>
+          <p class="sub">the map · one file per graph</p>
+          <ul>
+            <li>State schema — every key, one writer each</li>
+            <li>Nodes table — one responsibility, one output key</li>
+            <li>Routes — a mermaid diagram that <em>is</em> the map</li>
+            <li>Gates — JSON checks with a pass and a fail route</li>
+            <li>Failure map + <span class="m">max_steps</span> so every run halts</li>
+          </ul>
+        </article>
+        <article class="vcard">
+          <span class="tag">Artifact two</span>
+          <h3>nodes/*.md</h3>
+          <p class="sub">the briefs · one file per node</p>
+          <ul>
+            <li>Reads — the state keys it takes in</li>
+            <li>Writes — its one output key, exact shape</li>
+            <li>Instructions — the node <em>is</em> this section</li>
+            <li>Done-when — observable, not "when it's good"</li>
+            <li>Refusals — the fence around the node</li>
+          </ul>
+        </article>
+      </div>
+      <p class="note">The map is harness-agnostic: the same two artifacts drive Claude Code (Workflow or chained sessions), Codex CLI (chained <code class="m">codex exec</code>), an n8n canvas, or a LangGraph port. State lives on disk, so any runtime — and any human — can inspect a run mid-flight.</p>
+    </div>
+  </section>
+
+  <!-- WHEN EACH EARNS ITS PLACE -->
+  <section id="when" aria-labelledby="when-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="sec-no" aria-hidden="true">03</span>
+        <h2 id="when-h">When each earns its place</h2>
+      </div>
+      <p class="sec-intro">A loop on its own is enough for the work you only do once, where you don't know the path yet — <em>let the agent find it</em>. A graph earns its extra setup on anything you run every week: the content pipeline, the SEO / AEO funnel, the cohort accelerator.</p>
+      <div class="versus">
+        <article class="vcard">
+          <span class="tag">Reach for a loop when</span>
+          <h3>The path is unknown</h3>
+          <ul>
+            <li>One-off or exploratory work</li>
+            <li>You can state the bar but not the route</li>
+            <li>The overhead of a map would outweigh the job</li>
+          </ul>
+        </article>
+        <article class="vcard is-graph">
+          <span class="tag">Reach for a graph when</span>
+          <h3>The job repeats</h3>
+          <ul>
+            <li><strong>Validation gates</strong> the work cannot skip</li>
+            <li>A <strong>fixed set of routes</strong> the job can take</li>
+            <li>A <strong>clear failure point</strong> — the exact step it broke on</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout">
+        <p class="big">The skill opens with a loop-or-graph gate.</p>
+        <p>If the job is one-off, it tells you a loop is enough and stops — no ceremony graph for a one-step task. Its own rule&nbsp;8 applies to itself: the smallest graph that makes the real control flow visible.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- RULES -->
+  <section id="rules" aria-labelledby="rules-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="sec-no" aria-hidden="true">04</span>
+        <h2 id="rules-h">Eight rules for the topology</h2>
+      </div>
+      <p class="sec-intro">Each rule exists because a real failure mode punished its absence. The skill designs to all eight; when two collide, the last one wins.</p>
+      <div class="rules">
+        <article class="rulecard"><h3>One job, one key</h3><p>Each node gets one clear responsibility and a unique output key. A node described with "and" is two nodes; a key with two writers is a race.</p></article>
+        <article class="rulecard"><h3>Fan out only independent work</h3><p>Parallel nodes must not read each other's output. All-source joins take an explicit list of sources — the list is the contract.</p></article>
+        <article class="rulecard"><h3>Repo edits stay sequential</h3><p>Unless each editing node has its own isolated worktree. Runtimes disable parallel execution for coding agents sharing one cwd — design as if yours doesn't.</p></article>
+        <article class="rulecard"><h3>Reviewers return JSON</h3><p>Merged into state: <span class="m">approved</span>, <span class="m">issues</span>, <span class="m">summary</span>. Gates route on the verdict; fix nodes repair from the issues list. Prose can't be routed on.</p></article>
+        <article class="rulecard"><h3>Approve ends, reject corrects</h3><p>Approval routes to <span class="m">__end__</span>. Rejection routes to a corrective node and back to the same review — never "ship it anyway", never a fresh dice-roll.</p></article>
+        <article class="rulecard"><h3>Human nodes are rare</h3><p>Only for a consequential choice — spend, publish, delete — or a checkpoint the user asked for. A human node parks the run until someone shows up.</p></article>
+        <article class="rulecard"><h3>Every cycle is bounded</h3><p>A finite <span class="m">max_steps</span> for every topology containing a cycle, and a cap on every looping node. A bounded failure beats an unbounded bill.</p></article>
+        <article class="rulecard"><h3>The smallest visible graph</h3><p>Every node earns its box: a distinct responsibility, a distinct failure mode, or a gate that needs it. Never turn a one-step task into ceremony.</p></article>
+      </div>
+      <p class="note">Full rationale and examples ship inside the skill — <a href="https://github.com/NicholasSpisak/graph/blob/main/skills/graph/references/topology-rules.md">references/topology-rules.md</a>.</p>
+    </div>
+  </section>
+
+  <!-- WORKFLOW -->
+  <section id="how" aria-labelledby="how-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="sec-no" aria-hidden="true">05</span>
+        <h2 id="how-h">The workflow it runs for you</h2>
+      </div>
+      <p class="sec-intro">Describe the job and the skill does the drawing — grounded in your SOPs, your failure history, and your rubric.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="num" aria-hidden="true"></div>
+          <div>
+            <h3>Gates loop-or-graph</h3>
+            <p>Will the job run again? Are there checks it must not skip? Could you sketch the route on a napkin? Mostly no → it recommends a loop and stops.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num" aria-hidden="true"></div>
+          <div>
+            <h3>Gathers the raw material</h3>
+            <p>The deliverable and its cadence, the rubric every gate scores against, the route you already run by hand (or in n8n), where past runs broke, and which choices deserve a human.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num" aria-hidden="true"></div>
+          <div>
+            <h3>Designs the topology</h3>
+            <p>Applies the eight rules: one responsibility per node, gates as JSON verdicts, rejection routed through a fix node, every cycle bounded, repo edits kept sequential.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num" aria-hidden="true"></div>
+          <div>
+            <h3>Drafts the map</h3>
+            <p>Writes <span class="m">docs/graphs/&lt;slug&gt;/graph.md</span> — state schema, nodes table, mermaid routes, gates table, failure map, runtime notes — from a strict template.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num" aria-hidden="true"></div>
+          <div>
+            <h3>Drafts the node briefs</h3>
+            <p>One brief per node: reads, writes, instructions, done-when, refusals. Reviewer briefs pin the exact JSON they return; loop nodes state their internal bar and cap.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num" aria-hidden="true"></div>
+          <div>
+            <h3>Validates and hands off</h3>
+            <p>A bundled script mechanically checks the map — unique output keys, both routes on every gate, targets that exist, a reachable <span class="m">__end__</span>, a finite <span class="m">max_steps</span> — then tells you how to run it in your harness.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section id="install" aria-labelledby="install-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="sec-no" aria-hidden="true">06</span>
+        <h2 id="install-h">Install &amp; use</h2>
+      </div>
+      <p class="sec-intro">One command installs the skill through the Vercel <code class="m">npx skills</code> CLI — it detects your agents and asks where to put it. Then describe the job you repeat and let it draw the map.</p>
+      <div class="term" role="img" aria-label="Terminal command: run npx skills add for the NicholasSpisak graph repository to install the skill.">
+        <div class="bar" aria-hidden="true"><i></i><i></i><i></i></div>
+        <pre><span class="c"># preferred — the Vercel skills CLI</span>
+<span class="k">npx</span> skills add NicholasSpisak/graph</pre>
+      </div>
+      <p class="note">The CLI detects which agents you have (Claude Code, Codex, and more), asks whether to install into your current project or globally, and whether to symlink for auto-updates or copy. Prefer a script? <code class="m">git clone</code> the repo and run <code class="m">./install.sh</code> — see the <a href="https://github.com/NicholasSpisak/graph#install">README</a>.</p>
+      <div class="install-grid">
+        <article class="hcard">
+          <div class="top">In Claude Code</div>
+          <div class="body">
+            <div class="term" style="margin:0;box-shadow:none">
+              <pre><span class="p">/graph</span> our weekly SEO article pipeline —
+       audit, draft, score vs rubric, publish</pre>
+            </div>
+          </div>
+        </article>
+        <article class="hcard">
+          <div class="top">In Codex CLI</div>
+          <div class="body">
+            <div class="term" style="margin:0;box-shadow:none">
+              <pre><span class="p">$graph</span> our weekly SEO article pipeline —
+       audit, draft, score vs rubric, publish</pre>
+            </div>
+          </div>
+        </article>
+      </div>
+      <p class="note">It drafts the map and the briefs into <code class="m">docs/graphs/</code>, validates them, and tells you how to run the graph — Claude Code Workflow, chained <code class="m">codex exec</code>, or your n8n canvas. Once the map works, feed it the next cohort and the whole pipeline runs again.</p>
+    </div>
+  </section>
+
+  <!-- COMMUNITY CTA -->
+  <section class="community" aria-labelledby="cta-h">
+    <div class="wrap">
+      <div class="cta-band">
+        <div>
+          <p class="kicker">AI Operator Academy</p>
+          <h2 id="cta-h">Learn to run agents like this.</h2>
+          <p>Graph is one piece of a bigger practice — designing loops, briefing agents, and shipping real work. Come build with the community.</p>
+        </div>
+        <a class="go" href="https://www.skool.com/aioperatoracademy/about" rel="noopener">Join AI Operator Academy →</a>
+      </div>
+    </div>
+  </section>
+
+  <footer aria-labelledby="foot-h">
+    <div class="wrap">
+      <h2 id="foot-h" style="position:absolute;left:-999px">Site footer</h2>
+      <div class="foot-grid">
+        <div>
+          <div class="tglobe">Graph</div>
+          <p style="color:var(--ink-soft);max-width:38ch;margin:.6em 0 0">Past the loop, the next thing you design is the map it runs inside. Build the map once; feed it the next cohort; it runs again.</p>
+          <p style="margin:.9em 0 0"><a href="https://www.skool.com/aioperatoracademy/about" rel="noopener" style="font-family:var(--font-mono);font-size:.82rem;color:var(--signal-ink)">→ Join the AI Operator Academy community</a></p>
+        </div>
+        <div>
+          <h4>Project</h4>
+          <ul>
+            <li><a href="https://github.com/NicholasSpisak/graph">Repository</a></li>
+            <li><a href="https://github.com/NicholasSpisak/graph#readme">README</a></li>
+            <li><a href="https://github.com/NicholasSpisak/graph/blob/main/skills/graph/SKILL.md">The skill (SKILL.md)</a></li>
+            <li><a href="https://github.com/NicholasSpisak/graph/blob/main/LICENSE">License · MIT</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Companions</h4>
+          <ul>
+            <li><a href="https://nicholasspisak.github.io/goal-writer/">Goal Writer — brief the loop</a></li>
+            <li>Skill by Nick Spisak</li>
+          </ul>
+        </div>
+      </div>
+      <div class="colophon">
+        <span>MIT · the map compounds; the session does not</span>
+        <span>Built for Claude Code &amp; OpenAI Codex · 2026</span>
+      </div>
+    </div>
+  </footer>
+
+</main>
+
+<script>
+  (function(){
+    var root=document.documentElement, btn=document.getElementById('themeBtn'), label=document.getElementById('themeLabel');
+    function systemDark(){return window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches;}
+    function current(){return root.getAttribute('data-theme') || (systemDark()?'dark':'light');}
+    function apply(t){
+      root.setAttribute('data-theme',t);
+      var dark = t==='dark';
+      label.textContent = dark ? 'Light' : 'Dark';
+      btn.setAttribute('aria-pressed', dark ? 'true':'false');
+      btn.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme');
+    }
+    apply(current());
+    btn.addEventListener('click',function(){ apply(current()==='dark'?'light':'dark'); });
+  })();
+</script>
+</body>
+</html>
