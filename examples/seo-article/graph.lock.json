@@ -1,0 +1,369 @@
+{
+  "lock_version": 1,
+  "graph": "seo-article",
+  "version": "2.0",
+  "date": "2026-07-25",
+  "owner": "content team",
+  "cadence": "weekly",
+  "max_steps": 14,
+  "entry": "audit",
+  "executors": {
+    "frontier": {
+      "fable": "claude-fable-5",
+      "codex": "gpt-5.6-sol"
+    },
+    "balanced": {
+      "fable": "claude-sonnet-5",
+      "codex": "gpt-5.6-terra"
+    },
+    "fast": {
+      "fable": "claude-haiku-4-5",
+      "codex": "gpt-5.6-luna"
+    }
+  },
+  "state": [
+    {
+      "key": "audit",
+      "type": "json",
+      "written_by": "audit",
+      "read_by": [
+        "draft-new",
+        "edit-ranking"
+      ]
+    },
+    {
+      "key": "draft",
+      "type": "markdown",
+      "written_by": "draft-new / edit-ranking / fix \u2014 exclusive, one writer per pass",
+      "read_by": [
+        "assemble"
+      ]
+    },
+    {
+      "key": "article",
+      "type": "markdown",
+      "written_by": "assemble",
+      "read_by": [
+        "score",
+        "add-links"
+      ]
+    },
+    {
+      "key": "final_article",
+      "type": "markdown",
+      "written_by": "add-links",
+      "read_by": [
+        "onpage-audit",
+        "publish"
+      ]
+    },
+    {
+      "key": "review",
+      "type": "json",
+      "written_by": "score",
+      "read_by": [
+        "fix",
+        "add-links"
+      ]
+    },
+    {
+      "key": "onpage",
+      "type": "json",
+      "written_by": "onpage-audit",
+      "read_by": [
+        "fix"
+      ]
+    },
+    {
+      "key": "published_url",
+      "type": "json",
+      "written_by": "publish",
+      "read_by": [
+        "\u2014"
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "n": 1,
+      "id": "audit",
+      "responsibility": "rank + competitor audit for the keyword",
+      "output_key": "audit",
+      "runs": "once",
+      "cap": null,
+      "executor": {
+        "harness": "fable",
+        "tier": "frontier",
+        "model": "claude-fable-5"
+      },
+      "reviewer": false
+    },
+    {
+      "n": 2,
+      "id": "draft-new",
+      "responsibility": "draft a new article from the audit",
+      "output_key": "draft",
+      "runs": "loop",
+      "cap": 3,
+      "executor": {
+        "harness": "fable",
+        "tier": "frontier",
+        "model": "claude-fable-5"
+      },
+      "reviewer": false
+    },
+    {
+      "n": 3,
+      "id": "edit-ranking",
+      "responsibility": "edit the already-ranking page from the audit",
+      "output_key": "draft",
+      "runs": "loop",
+      "cap": 3,
+      "executor": {
+        "harness": "fable",
+        "tier": "frontier",
+        "model": "claude-fable-5"
+      },
+      "reviewer": false
+    },
+    {
+      "n": 4,
+      "id": "assemble",
+      "responsibility": "assemble + on-page optimize the current draft",
+      "output_key": "article",
+      "runs": "once",
+      "cap": null,
+      "executor": {
+        "harness": "codex",
+        "tier": "balanced",
+        "model": "gpt-5.6-terra"
+      },
+      "reviewer": false
+    },
+    {
+      "n": 5,
+      "id": "score",
+      "responsibility": "score the article against the rubric",
+      "output_key": "review",
+      "runs": "once",
+      "cap": null,
+      "executor": {
+        "harness": "fable",
+        "tier": "balanced",
+        "model": "claude-sonnet-5"
+      },
+      "reviewer": true
+    },
+    {
+      "n": 6,
+      "id": "fix",
+      "responsibility": "repair the draft to exactly the issues the last verdict named",
+      "output_key": "draft",
+      "runs": "once",
+      "cap": null,
+      "executor": {
+        "harness": "codex",
+        "tier": "frontier",
+        "model": "gpt-5.6-sol"
+      },
+      "reviewer": false
+    },
+    {
+      "n": 7,
+      "id": "add-links",
+      "responsibility": "add internal links",
+      "output_key": "final_article",
+      "runs": "once",
+      "cap": null,
+      "executor": {
+        "harness": "codex",
+        "tier": "fast",
+        "model": "gpt-5.6-luna"
+      },
+      "reviewer": false
+    },
+    {
+      "n": 8,
+      "id": "onpage-audit",
+      "responsibility": "run the on-page audit checklist",
+      "output_key": "onpage",
+      "runs": "once",
+      "cap": null,
+      "executor": {
+        "harness": "fable",
+        "tier": "balanced",
+        "model": "claude-sonnet-5"
+      },
+      "reviewer": true
+    },
+    {
+      "n": 9,
+      "id": "publish",
+      "responsibility": "publish to the CMS",
+      "output_key": "published_url",
+      "runs": "once",
+      "cap": null,
+      "executor": {
+        "harness": "codex",
+        "tier": "frontier",
+        "model": "gpt-5.6-sol"
+      },
+      "reviewer": false
+    }
+  ],
+  "gates": [
+    {
+      "id": "page-ranks",
+      "after": "audit",
+      "check": {
+        "raw": "audit.ranking_url != null",
+        "state_key": "audit",
+        "jq": ".ranking_url != null"
+      },
+      "pass": "edit-ranking",
+      "fail": "draft-new"
+    },
+    {
+      "id": "rubric",
+      "after": "score",
+      "check": {
+        "raw": "review.approved == true",
+        "state_key": "review",
+        "jq": ".approved == true"
+      },
+      "pass": "add-links",
+      "fail": "fix"
+    },
+    {
+      "id": "onpage",
+      "after": "onpage-audit",
+      "check": {
+        "raw": "onpage.approved == true",
+        "state_key": "onpage",
+        "jq": ".approved == true"
+      },
+      "pass": "publish",
+      "fail": "fix"
+    }
+  ],
+  "edges": [
+    {
+      "from": "audit",
+      "to": "page-ranks",
+      "label": ""
+    },
+    {
+      "from": "page-ranks",
+      "to": "edit-ranking",
+      "label": "pass"
+    },
+    {
+      "from": "page-ranks",
+      "to": "draft-new",
+      "label": "fail"
+    },
+    {
+      "from": "score",
+      "to": "rubric",
+      "label": ""
+    },
+    {
+      "from": "rubric",
+      "to": "add-links",
+      "label": "pass"
+    },
+    {
+      "from": "rubric",
+      "to": "fix",
+      "label": "fail"
+    },
+    {
+      "from": "onpage-audit",
+      "to": "onpage",
+      "label": ""
+    },
+    {
+      "from": "onpage",
+      "to": "publish",
+      "label": "pass"
+    },
+    {
+      "from": "onpage",
+      "to": "fix",
+      "label": "fail"
+    },
+    {
+      "from": "draft-new",
+      "to": "assemble",
+      "label": ""
+    },
+    {
+      "from": "edit-ranking",
+      "to": "assemble",
+      "label": ""
+    },
+    {
+      "from": "assemble",
+      "to": "score",
+      "label": ""
+    },
+    {
+      "from": "add-links",
+      "to": "onpage-audit",
+      "label": ""
+    },
+    {
+      "from": "fix",
+      "to": "assemble",
+      "label": "repaired draft"
+    },
+    {
+      "from": "publish",
+      "to": "__end__",
+      "label": ""
+    }
+  ],
+  "failure_map": [
+    {
+      "failure_class": "thin keyword, no angle",
+      "surfaces_at": "audit",
+      "symptom": "audit.competitor_gap empty"
+    },
+    {
+      "failure_class": "draft off search intent",
+      "surfaces_at": "score",
+      "symptom": "review.issues names intent"
+    },
+    {
+      "failure_class": "broken internal links",
+      "surfaces_at": "onpage-audit",
+      "symptom": "onpage.issues lists 404s"
+    },
+    {
+      "failure_class": "CMS rejection",
+      "surfaces_at": "publish",
+      "symptom": "publish error, article intact"
+    }
+  ],
+  "hashes": {
+    "content": "321fd642149c59d0f6e25559f51dfeffb1d85c5ed8d335e4b52fda1f8e39fb59",
+    "files": {
+      "graph.md": "737150661d44e550279c0c3537621a378e0f4a921a09b9d28f6523bd12e6915f",
+      "nodes/01-audit.md": "6130c0faf159a43b457292561eb5be8aebc4a826e4a55d9e87d4345e8c859e9c",
+      "nodes/02-draft-new.md": "57ea755d0c3aa3e567d6a735bd5eef34e5c64df501022940906f1f6a0600a24e",
+      "nodes/03-edit-ranking.md": "0b2fda9ccb361aef153991625b8b21f0df761d61c2049d4fe2eebdbfcde64775",
+      "nodes/04-assemble.md": "3169d51f1a6e60700050d296ee5e6e6d77acf2fb9d22b76a9a3f222625f5e282",
+      "nodes/05-score.md": "ee4b15c9f3ebdf25cd4decda8d24a52f7ae4c868d8463fa111a2e87f2b0faca5",
+      "nodes/06-fix.md": "200507cff2cd98c08d349a0508cd1914fb36439cd35177d347e2e2238761c66d",
+      "nodes/07-add-links.md": "fd919736e6bcfe5a6fcfa2bcf5fd1f23e211f5ebf5a22603208545ff08d48cc4",
+      "nodes/08-onpage-audit.md": "70ba013f9214e918fcc7b7d004fa56dd997ff629cdc514b2ad4d4a27f57c530e",
+      "nodes/09-publish.md": "18f9394adea6f82a0fc3750d38c4ff733d66cdb8a074030e8e17e661c6bc54b2"
+    }
+  },
+  "compiled_at": "2026-07-25T19:50:01+00:00",
+  "approval": {
+    "approved_by": "Nick Spisak",
+    "date": "2026-07-25T19:42:20+00:00",
+    "graph_hash": "321fd642149c59d0f6e25559f51dfeffb1d85c5ed8d335e4b52fda1f8e39fb59"
+  }
+}

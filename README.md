@@ -1,8 +1,13 @@
 # graph
 
-A portable agent skill that drafts **agent graphs** — the map of
-nodes, checkpoints, and routes (a state machine) that a repeatable
-job travels — for **Claude Code** and **OpenAI Codex**.
+A portable agent skill for **graph engineering**: state a desired
+outcome (or a known job) and it drafts the **agent graph** — the map
+of nodes, checkpoints, and routes (a state machine) the repeatable
+job travels — compiles it to a locked machine form, renders a
+**visual review surface you approve before anything runs**, and emits
+**multi-model drivers** that put each node on the model it deserves
+(Claude on judgment, Codex `gpt-5.6` on implementation). For
+**Claude Code** and **OpenAI Codex**.
 
 Invoke it as `/graph` in Claude Code, or `$graph` in Codex.
 
@@ -42,21 +47,48 @@ pipeline runs again.
 ## What the skill drafts
 
 One graph gets one committed directory in your project's
-`docs/graphs/`:
+`docs/graphs/`, in three layers — authored, compiled, generated:
 
-| Artifact | Carries |
-|---|---|
-| `graph.md` | The map: state schema, nodes table, mermaid routes diagram, gates table, failure map, runtime notes, `max_steps` |
-| `nodes/<NN>-<node>.md` | One brief per node: reads, writes, instructions, done-when, refusals |
+| Artifact | Layer | Carries |
+|---|---|---|
+| `graph.md` | authored | The map: state schema, nodes + executor bindings, routes, gates, failure map, runtime, `max_steps` |
+| `nodes/<NN>-<node>.md` | authored | One brief per node: reads, writes, instructions, done-when, refusals |
+| `graph.lock.json` | compiled | Machine-canonical map + content hash + your approval stamp |
+| `review.html` | rendered | The visual validation surface you sign off on |
+| `drivers/` | generated | Claude Code Workflow script + chained `codex exec` driver + reviewer schemas + Codex agent roles |
 
-The map is **harness-agnostic**: the same two artifacts drive Claude
-Code (Workflow or chained sessions), Codex CLI (chained
-`codex exec`), an n8n canvas, or a LangGraph port — see
+You (and the drafting agent) edit only the authored layer. The
+compiler regenerates the rest — including the mermaid diagram inside
+`graph.md`, which is a projection of the tables, never a source. The
+drivers **refuse to run a map that is unapproved or has drifted since
+approval** — the graph itself passes a gate before the first run.
+
+The map is **harness-agnostic**: the same lock file drives Claude
+Code (the generated Workflow), Codex CLI (the generated `codex exec`
+chain), an n8n canvas, or a LangGraph port — see
 [references/run-the-graph.md](skills/graph/references/run-the-graph.md).
+
+## Multi-model by design
+
+Every node names its executor — `fable:<tier>`, `codex:<tier>`, or
+`human` — and a per-graph Executors table is the only place model IDs
+live:
+
+| tier | fable (Claude Code) | codex (Codex CLI) |
+|---|---|---|
+| frontier | claude-fable-5 | gpt-5.6-sol |
+| balanced | claude-sonnet-5 | gpt-5.6-terra |
+| fast | claude-haiku-4-5 | gpt-5.6-luna |
+
+Judgment, research, creative, and reviewer nodes run on Claude;
+code-heavy implementation runs on Codex — and reviewers are
+cross-vendor from the nodes they grade, so the model scoring the work
+never wrote it. Codex reviewer nodes get their verdict shape enforced
+with `--output-schema`; gates route on the JSON either way.
 
 ## The topology rules
 
-The skill designs to eight rules (full rationale in
+The skill designs to ten rules (full rationale in
 [references/topology-rules.md](skills/graph/references/topology-rules.md)):
 
 1. One clear responsibility and a unique output key per node.
@@ -73,10 +105,15 @@ The skill designs to eight rules (full rationale in
 7. A finite `max_steps` for every topology containing a cycle.
 8. The smallest graph that makes the real control flow visible — no
    ceremony for one-step tasks.
+9. Side effects sit after the gate that authorizes them; everything
+   upstream of a gate is safe to re-run.
+10. The graph itself passes a gate — no driver runs an unapproved or
+    drifted map.
 
-And before any of that, a **loop-or-graph gate**: if the job is
-one-off or exploratory, the skill tells you a loop is enough and
-stops.
+And before any of that: an **outcome intake** (state the outcome, the
+skill derives the repeatable job and its rubric) followed by a
+**loop-or-graph gate** — if the job is one-off or exploratory, the
+skill tells you a loop is enough and stops.
 
 ## Install
 
@@ -146,12 +183,25 @@ $graph our weekly SEO article pipeline — audit, draft, score against the rubri
 the prompt shim). Codex also auto-selects the skill when a request
 matches its description.
 
-The skill gates loop-vs-graph, gathers the job's raw material (the
-deliverable, the bar, the failure history), designs the topology,
-drafts `graph.md` plus one brief per node into `docs/graphs/`,
-validates the map mechanically with the bundled
-[`validate_graph.sh`](skills/graph/scripts/validate_graph.sh), and
-tells you how to run it in your harness.
+Or start from an outcome:
+
+```
+/graph I want every discovery call followed up within an hour without me touching it
+```
+
+The skill derives the repeatable job (outcome intake), gates
+loop-vs-graph, gathers the raw material (the deliverable, the bar,
+the failure history), designs the topology with per-node model
+bindings, drafts `graph.md` plus one brief per node into
+`docs/graphs/`, **compiles** the map
+([`compile_graph.py`](skills/graph/scripts/compile_graph.py)) into a
+schema-validated `graph.lock.json`, renders the **visual review
+surface** ([`render_review.py`](skills/graph/scripts/render_review.py))
+for you to approve — approval is stamped into the lock by hash — and
+then emits the runnable **drivers**
+([`emit_drivers.py`](skills/graph/scripts/emit_drivers.py)) for
+Claude Code and Codex CLI. A worked, fully-generated example lives in
+[`examples/seo-article/`](examples/seo-article/).
 
 ## Repository layout
 
@@ -159,14 +209,21 @@ tells you how to run it in your harness.
 skills/graph/
 ├── SKILL.md                              # the skill (agentskills.io standard)
 ├── references/
-│   ├── topology-rules.md                 # the 8 design rules + rationale
-│   ├── graph-template.md                 # graph.md skeleton + worked example
+│   ├── topology-rules.md                 # the 10 design rules + rationale
+│   ├── graph-template.md                 # graph.md v2 skeleton + worked example
 │   ├── node-brief-template.md            # node brief skeleton + reviewer JSON
-│   └── run-the-graph.md                  # running the map in each harness
+│   └── run-the-graph.md                  # the drivers + cross-harness contract
+├── schemas/
+│   └── graph.lock.schema.json            # formal schema for the lock file
 └── scripts/
-    └── validate_graph.sh                 # 8 mechanical map checks
+    ├── compile_graph.py                  # compile + validate + approve + check
+    ├── render_review.py                  # the visual validation surface
+    ├── emit_drivers.py                   # Workflow + codex exec driver generation
+    └── validate_graph.sh                 # python-free structural fallback
+examples/seo-article/                     # worked example incl. generated artifacts
 codex/graph.md                            # optional Codex custom-prompt shim
 install.sh
+docs/strategy/                            # the research + strategy behind v2
 ```
 
 ## When not to use it

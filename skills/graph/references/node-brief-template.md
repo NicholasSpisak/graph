@@ -12,6 +12,7 @@ state keys it names should produce the output key.
 
 **Responsibility:** <the one clause from the Nodes table, verbatim>
 **Runs:** <once | loop (cap N) | human>
+**Executor:** <fable:tier | codex:tier | human — from the Nodes table>
 
 ## Reads
 
@@ -63,6 +64,24 @@ A reviewer's Writes section specifies the exact JSON it returns:
 Reviewers score against the rubric file named in `## Job`, never
 against taste. If no rubric exists, writing one precedes writing the
 reviewer.
+
+Reviewer verdicts are mechanically enforced downstream: the driver
+generator emits a JSON Schema per reviewer, passed to Codex-executed
+reviewers via `--output-schema` and to Claude subagent reviewers via
+the Workflow `schema` option. Prefer `fable` executors for reviewers —
+cross-vendor from the codex nodes they grade.
+
+## Codex-executed nodes
+
+A brief whose node runs on `codex:<tier>` is the whole prompt a
+headless `codex exec` call receives — it cannot ask questions. Two
+extra disciplines:
+
+- Keep the node's total input (brief + state files it reads) under
+  272K tokens; past that boundary input billing doubles.
+- If the brief calls for within-node fan-out ("one worker per file"),
+  say so explicitly — the generated `.codex/agents/<node>.toml` role
+  carries the fence for each sub-agent.
 
 ## Loop nodes
 

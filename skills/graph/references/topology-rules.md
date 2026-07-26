@@ -1,7 +1,7 @@
 # Topology rules
 
-Eight rules for designing an agent graph. Each exists because a real
-failure mode punished its absence. Apply all eight; when two collide,
+Ten rules for designing an agent graph. Each exists because a real
+failure mode punished its absence. Apply all ten; when two collide,
 rule 8 (smallest visible graph) wins.
 
 ## 1. One responsibility, one output key
@@ -105,6 +105,58 @@ turn a simple one-step task into ceremony unless the user explicitly
 requested the structure. If the diagram is a straight line with no
 gates, it isn't a graph yet — it's a checklist, and a loop with a
 good brief may serve better.
+
+## 9. Side effects sit after the gate that authorizes them
+
+A node that publishes, spends money, or deletes data runs only
+downstream of the gate that authorizes it; anything upstream of a gate
+must be safe to re-execute. Two forces make this a rule, not a
+preference: a rejected run re-enters upstream nodes (rule 5), and
+every serious runtime — LangGraph interrupts, Temporal replay, a
+re-run `codex exec` chain — re-executes a node from the top when a
+paused run resumes. A side effect placed before its gate fires twice
+the first time a draft misses the rubric.
+
+If a node mixes safe work and a side effect, split it: the safe half
+before the gate, the effect after. The failure map gets clearer for
+free — "charged twice" now surfaces at exactly one node.
+
+## 10. The graph itself passes a gate
+
+The map is validated twice, by different judges. The **compiler**
+declares it well-formed: sections present, output keys unique, every
+gate double-routed, everything reachable, `__end__` reachable,
+executors resolvable. The **user** declares it right: they see the
+rendered map — diagram, tables, failure map, checklist — and approve
+it, which stamps the content hash into `graph.lock.json`.
+
+Drivers check the stamp before every run and refuse a map that is
+unapproved or has changed since approval. Editing `graph.md` or a
+brief after sign-off invalidates the stamp automatically; recompile,
+re-render, re-approve. This is the plan-gate: it fires once per map
+version, not once per run, so it costs nothing on the cadence — and it
+is the difference between "the pipeline we agreed on" and "whatever
+the drafting agent last wrote".
+
+## Choosing an executor per node
+
+Every node names its executor: `fable:<tier>`, `codex:<tier>`, or
+`human`. Tiers — `frontier`, `balanced`, `fast` — resolve to model IDs
+in the graph's Executors table, the only place a model ID may appear.
+
+- **fable (Claude Code)** takes research, synthesis, creative work,
+  judgment calls, and every reviewer node. Cross-vendor review is the
+  point: the model grading the work should not be the model that did
+  it, and with two harnesses on the map that independence costs one
+  table cell.
+- **codex (Codex CLI)** takes code-heavy implementation: repo edits,
+  refactors, test writing, mechanical bulk. Keep a codex node's input
+  under 272K tokens — past that boundary input billing doubles.
+- **human** appears exactly where rule 6 already allows.
+
+Match tier to stakes, not habit: a `fast`-tier model adding internal
+links is a win; a `fast`-tier model deciding what to publish is a
+failure mode with a discount.
 
 ## Choosing node granularity
 

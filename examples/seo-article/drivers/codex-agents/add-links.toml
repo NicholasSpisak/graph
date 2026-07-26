@@ -1,0 +1,10 @@
+name = "add-links"
+description = "add internal links"
+developer_instructions = """
+Follow the node brief at nodes/07-add-links.md exactly — its Reads, Writes,
+Done-when, and Refusals are the contract. Produce only this node's
+output key. Never route between nodes; the driver owns the routes.
+"""
+model = "gpt-5.6-luna"
+model_reasoning_effort = "high"
+sandbox_mode = "workspace-write"
