@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nicholasspisak.github.io/graph/schemas/graph.lock.schema.json",
+  "title": "Agent graph lock file",
+  "description": "Machine-canonical compiled form of a graph.md map. Produced only by compile_graph.py; drivers verify hashes.content against the source files and require a fresh approval stamp before running.",
+  "type": "object",
+  "required": ["lock_version", "graph", "max_steps", "entry", "executors", "nodes", "gates", "edges", "hashes", "approval"],
+  "properties": {
+    "lock_version": { "const": 1 },
+    "graph": { "type": "string", "minLength": 1 },
+    "version": { "type": "string" },
+    "date": { "type": "string" },
+    "owner": { "type": "string" },
+    "cadence": { "type": "string" },
+    "max_steps": { "type": "integer", "minimum": 1 },
+    "entry": { "type": "string", "minLength": 1 },
+    "executors": {
+      "type": "object",
+      "description": "Tier name -> harness -> model ID. The only place model IDs live.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["fable", "codex"],
+        "properties": {
+          "fable": { "type": "string", "minLength": 1 },
+          "codex": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "state": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "type", "written_by", "read_by"],
+        "properties": {
+          "key": { "type": "string", "minLength": 1 },
+          "type": { "type": "string" },
+          "written_by": { "type": "string" },
+          "read_by": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["n", "id", "responsibility", "output_key", "runs", "executor"],
+        "properties": {
+          "n": { "type": "integer", "minimum": 1 },
+          "id": { "type": "string", "minLength": 1 },
+          "responsibility": { "type": "string" },
+          "output_key": { "type": "string" },
+          "runs": { "enum": ["once", "loop", "human"] },
+          "cap": { "type": ["integer", "null"], "minimum": 1 },
+          "reviewer": { "type": "boolean" },
+          "executor": {
+            "type": "object",
+            "required": ["harness", "tier", "model"],
+            "properties": {
+              "harness": { "enum": ["fable", "codex", "human"] },
+              "tier": { "type": ["string", "null"] },
+              "model": { "type": ["string", "null"] }
+            }
+          }
+        }
+      }
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "after", "check", "pass", "fail"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "after": { "type": "string", "minLength": 1 },
+          "check": {
+            "type": "object",
+            "required": ["raw"],
+            "properties": {
+              "raw": { "type": "string" },
+              "state_key": { "type": ["string", "null"] },
+              "jq": { "type": ["string", "null"] }
+            }
+          },
+          "pass": { "type": "string", "minLength": 1 },
+          "fail": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1 },
+          "label": { "type": "string" }
+        }
+      }
+    },
+    "failure_map": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "failure_class": { "type": "string" },
+          "surfaces_at": { "type": "string" },
+          "symptom": { "type": "string" }
+        }
+      }
+    },
+    "hashes": {
+      "type": "object",
+      "required": ["content", "files"],
+      "properties": {
+        "content": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "files": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "compiled_at": { "type": "string" },
+    "approval": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["approved_by", "date", "graph_hash"],
+          "properties": {
+            "approved_by": { "type": "string", "minLength": 1 },
+            "date": { "type": "string" },
+            "graph_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          }
+        }
+      ]
+    }
+  }
+}

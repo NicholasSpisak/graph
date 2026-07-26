@@ -1,0 +1,10 @@
+name = "assemble"
+description = "assemble + on-page optimize the current draft"
+developer_instructions = """
+Follow the node brief at nodes/04-assemble.md exactly — its Reads, Writes,
+Done-when, and Refusals are the contract. Produce only this node's
+output key. Never route between nodes; the driver owns the routes.
+"""
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
+sandbox_mode = "workspace-write"

@@ -487,9 +487,9 @@
     <div class="wrap">
       <div class="sec-head">
         <span class="sec-no" aria-hidden="true">04</span>
-        <h2 id="rules-h">Eight rules for the topology</h2>
+        <h2 id="rules-h">Ten rules for the topology</h2>
       </div>
-      <p class="sec-intro">Each rule exists because a real failure mode punished its absence. The skill designs to all eight; when two collide, the last one wins.</p>
+      <p class="sec-intro">Each rule exists because a real failure mode punished its absence. The skill designs to all ten; when two collide, rule 8 — the smallest visible graph — wins.</p>
       <div class="rules">
         <article class="rulecard"><h3>One job, one key</h3><p>Each node gets one clear responsibility and a unique output key. A node described with "and" is two nodes; a key with two writers is a race.</p></article>
         <article class="rulecard"><h3>Fan out only independent work</h3><p>Parallel nodes must not read each other's output. All-source joins take an explicit list of sources — the list is the contract.</p></article>
@@ -499,6 +499,8 @@
         <article class="rulecard"><h3>Human nodes are rare</h3><p>Only for a consequential choice — spend, publish, delete — or a checkpoint the user asked for. A human node parks the run until someone shows up.</p></article>
         <article class="rulecard"><h3>Every cycle is bounded</h3><p>A finite <span class="m">max_steps</span> for every topology containing a cycle, and a cap on every looping node. A bounded failure beats an unbounded bill.</p></article>
         <article class="rulecard"><h3>The smallest visible graph</h3><p>Every node earns its box: a distinct responsibility, a distinct failure mode, or a gate that needs it. Never turn a one-step task into ceremony.</p></article>
+        <article class="rulecard"><h3>Side effects after gates</h3><p>Publish, spend, delete — only downstream of the gate that authorizes it. Everything upstream of a gate must be safe to re-run, because resumed runs re-execute the node from the top.</p></article>
+        <article class="rulecard"><h3>The graph passes a gate</h3><p>The compiler declares the map well-formed; you declare it right — on a rendered review page, stamped by hash into the lock file. Drivers refuse an unapproved or drifted map.</p></article>
       </div>
       <p class="note">Full rationale and examples ship inside the skill — <a href="https://github.com/NicholasSpisak/graph/blob/main/skills/graph/references/topology-rules.md">references/topology-rules.md</a>.</p>
     </div>
@@ -531,7 +533,7 @@
           <div class="num" aria-hidden="true"></div>
           <div>
             <h3>Designs the topology</h3>
-            <p>Applies the eight rules: one responsibility per node, gates as JSON verdicts, rejection routed through a fix node, every cycle bounded, repo edits kept sequential.</p>
+            <p>Applies the ten rules: one responsibility per node, gates as JSON verdicts, rejection routed through a fix node, every cycle bounded, repo edits kept sequential, side effects after gates — and binds each node to the model it deserves: Claude on judgment and review, Codex on implementation.</p>
           </div>
         </div>
         <div class="step">
@@ -552,7 +554,7 @@
           <div class="num" aria-hidden="true"></div>
           <div>
             <h3>Validates and hands off</h3>
-            <p>A bundled script mechanically checks the map — unique output keys, both routes on every gate, targets that exist, a reachable <span class="m">__end__</span>, a finite <span class="m">max_steps</span> — then tells you how to run it in your harness.</p>
+            <p>A compiler mechanically checks the map — unique output keys, both routes on every gate, targets that exist, a reachable <span class="m">__end__</span>, a finite <span class="m">max_steps</span> — locks it by content hash, and renders a visual review page. You approve it before anything runs; then it emits the drivers for Claude Code and Codex CLI.</p>
           </div>
         </div>
       </div>
